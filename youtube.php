@@ -154,22 +154,22 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 			if ($client->getAccessToken()) {
 
 			  $youtubeService = new Google_Service_YouTube($client);
-			  $subscriptions = $youtubeService->activities->listActivities('snippet,contentDetails', array('home' => true, 'maxResults' => 40, 'fields' => 'items(contentDetails,id,snippet)'));
+			  $subscriptions = $youtubeService->activities->listActivities('snippet,contentDetails', array('home' => true, 'maxResults' => 50, 'fields' => 'items(contentDetails,id,snippet)'));
 			  foreach($subscriptions as $sub) {
 				
 				$details = $sub->contentDetails;
 				$id = null;
 				if(isset($details->upload)) {
 					$id = $details->upload->videoId;
-				} elseif(isset($details->recommendation)) {
-					$id = $details->recommendation->getResourceId()->videoId;
 				} elseif(isset($details->playlistItem)) {
 					$id = $details->playlistItem->getResourceId()->videoId;
+				} elseif(isset($details->recommendation)) {
+					$id = $details->recommendation->getResourceId()->videoId;
 				} elseif(isset($details->bulletin)) {
 					$id = $details->bulletin->getResourceId()->videoId;
 				}
 				
-				if($id) {
+				if($id && !isset($videos[$id])) {
 					$videos[$id] = array(
 						$sub->snippet->title,
 						$sub->snippet->thumbnails->default->url,
