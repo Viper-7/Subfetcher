@@ -6,5 +6,4 @@ Uses youtube-dl to enable downloading of protected videos and can download multi
 
 Requires PHP 5.3 or higher, and write access to it's own folder.
 
-
 ![Screenshot](http://priv.viper-7.com/subdl.png)
