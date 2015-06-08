@@ -23,6 +23,10 @@ $youtubedl_path = 'youtube-dl';
 // Google API path. If not found the script will attempt to install it
 $googleapi_path = 'google-api-php-client';
 
+// Show Recommendations from the home page? or only subscriptions if false.
+$show_recommendations = false;
+
+
 /*
  * You can acquire an OAuth 2.0 client ID and client secret from the
  * {{ Google Cloud Console }} <{{ https://cloud.google.com/console }}>
@@ -161,12 +165,10 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 				$id = null;
 				if(isset($details->upload)) {
 					$id = $details->upload->videoId;
-//				} elseif(isset($details->playlistItem)) {
-//					$id = $details->playlistItem->getResourceId()->videoId;
-//				} elseif(isset($details->recommendation)) {
-//					$id = $details->recommendation->getResourceId()->videoId;
-//				} elseif(isset($details->bulletin)) {
-//					$id = $details->bulletin->getResourceId()->videoId;
+				} elseif($show_recommendations && isset($details->recommendation)) {
+					$id = $details->recommendation->getResourceId()->videoId;
+				} elseif($show_recommendations && isset($details->bulletin)) {
+					$id = $details->bulletin->getResourceId()->videoId;
 				}
 				
 				if($id && !isset($videos[$id])) {
