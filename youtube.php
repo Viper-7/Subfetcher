@@ -93,13 +93,13 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 			$running = shell_exec('ps aux | grep youtube-dl');
 			if($running) {
 				$count = substr_count($running, "\n") - 2;
-				if($count > 0)
+				if($count > 0) {
 					$download_threads -= $count;
+					$downloading = "<p>{$count} video(s) currently downloading</p>";
+				}
 				
 				if($download_threads < 1)
 					$download_threads = 1;
-				
-				$downloading = "<p>{$count} video(s) currently downloading</p>";
 			}
 
 			$files = glob($video_path . '/*.part');
