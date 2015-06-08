@@ -161,12 +161,12 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 				$id = null;
 				if(isset($details->upload)) {
 					$id = $details->upload->videoId;
-				} elseif(isset($details->playlistItem)) {
-					$id = $details->playlistItem->getResourceId()->videoId;
-				} elseif(isset($details->recommendation)) {
-					$id = $details->recommendation->getResourceId()->videoId;
-				} elseif(isset($details->bulletin)) {
-					$id = $details->bulletin->getResourceId()->videoId;
+//				} elseif(isset($details->playlistItem)) {
+//					$id = $details->playlistItem->getResourceId()->videoId;
+//				} elseif(isset($details->recommendation)) {
+//					$id = $details->recommendation->getResourceId()->videoId;
+//				} elseif(isset($details->bulletin)) {
+//					$id = $details->bulletin->getResourceId()->videoId;
 				}
 				
 				if($id && !isset($videos[$id])) {
