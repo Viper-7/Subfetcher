@@ -152,6 +152,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 
 			// Check to ensure that the access token was successfully acquired.
 			if ($client->getAccessToken()) {
+
 			  $youtubeService = new Google_Service_YouTube($client);
 			  $subscriptions = $youtubeService->activities->listActivities('snippet,contentDetails', array('home' => true, 'maxResults' => 40, 'fields' => 'items(contentDetails,id,snippet)'));
 			  foreach($subscriptions as $sub) {
@@ -172,7 +173,8 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 					$videos[$id] = array(
 						$sub->snippet->title,
 						$sub->snippet->thumbnails->default->url,
-						$sub->snippet->publishedAt
+						$sub->snippet->publishedAt,
+						$sub->snippet->channelTitle
 					);
 				}
 			  }
@@ -203,9 +205,9 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 				<div class="button">
 					<input type="submit" value="Download"/>
 				</div>
-				<table><thead><tr><th>Download</th><th>Image</th><th>Name</th><th>Published</th><th>Hide</th></tr></thead><tfoot></tfoot><tbody>
-				<?php foreach($videos as $id => $data) { list($title, $image, $date) = $data; if(isset($queued[$id]) || isset($crap[$id])) continue; $date = date('Y-m-d h:i:s', strtotime($date)); ?>
-					<tr><td><input class="download" type="checkbox" name="download[<?php echo $id ?>]"></td><td><img src="<?php echo $image ?>"></td><td><?php echo $title ?></td><td><?php echo $date ?></td><td class="hide"><input type="checkbox" class="hide" name="crap[<?php echo $id ?>]"></td></tr>
+				<table><thead><tr><th>Download</th><th>Image</th><th>Author</th><th>Name</th><th>Published</th><th>Hide</th></tr></thead><tfoot></tfoot><tbody>
+				<?php foreach($videos as $id => $data) { list($title, $image, $date, $author) = $data; if(isset($queued[$id]) || isset($crap[$id])) continue; $date = date('Y-m-d h:i:s', strtotime($date)); ?>
+					<tr><td><input class="download" type="checkbox" name="download[<?php echo $id ?>]"></td><td><img src="<?php echo $image ?>"></td><td><?php echo $author ?></td><td><?php echo $title ?></td><td><?php echo $date ?></td><td class="hide"><input type="checkbox" class="hide" name="crap[<?php echo $id ?>]"></td></tr>
 				<?php } ?>
 				</tbody></table>
 			  </form>
