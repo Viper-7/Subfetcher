@@ -32,6 +32,9 @@ $types = array('upload','recommendation','bulletin');
 // Check each of the user's subscribed channels for new uploads (slow)
 $use_channel_scan = false;
 
+// Filter results to only the past n days
+$filter_days = 14;
+
 
 /*
  * You can acquire an OAuth 2.0 client ID and client secret from the
@@ -90,9 +93,9 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 			if(!file_exists($video_path)) mkdir($video_path);
 			chdir($video_path);
 			
-			$running = shell_exec('ps aux | grep youtube-dl');
+			$running = shell_exec('ps aux | grep youtube-dl | grep python');
 			if($running) {
-				$count = substr_count($running, "\n") - 2;
+				$count = substr_count($running, "\n") - 1;
 				if($count > 0) {
 					$download_threads -= $count;
 					$downloading = "<p>{$count} video(s) currently downloading</p>";
@@ -114,7 +117,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 				foreach($files as $file => $size) {
 					if(isset($oldfiles[$file]) && $oldfiles[$file] == $size && time() - filemtime($file) > 30) {
 						// Download has failed, resume it
-						if(preg_match('/-(\w+)\.\w+\.part$/', $file, $match)) {
+						if(preg_match('/-([a-zA-Z0-9_-]+)\.\w+\.part$/', $file, $match)) {
 							$url = "http://www.youtube.com/watch?v=" . $match[1];
 							$cmd[] = "{$youtubedl_path} {$url} -f 18 3>/dev/null 2>/dev/null >/dev/null";
 						}
@@ -128,7 +131,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 						$batch[$i++ % $download_threads][] = $c;
 					}
 					foreach($batch as $cmd) {
-						exec(implode(' && ', $cmd) . ' & disown');
+						pclose(popen(implode(' && ', $cmd) . ' & disown', 'r'));
 					}
 					$message .= "<p>Resumed {$i} stalled video(s) in " . count($batch) . " threads</p>";
 				}
@@ -140,14 +143,14 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 			if(!empty($_POST['videoid'])) {
 				$cmd = array();
 				foreach(explode(',', $_POST['videoid']) as $id) {
-					if(ctype_alnum($id)) {
+					if(preg_match('/^[a-zA-Z0-9_-]+$/', $id)) {
 						$url = "http://www.youtube.com/watch?v={$id}";
 						$queued = @file_get_contents(__DIR__ . '/.youtube.downloaded');
 						$queued = json_decode($queued, true);
 						if(!$queued) $queued = array();
 						$queued[$id] = true;
 						file_put_contents(__DIR__ . '/.youtube.downloaded', json_encode($queued));
-						$cmd[] = "{$youtubedl_path} {$url} -f 18 3>/dev/null 2>/dev/null >/dev/null";
+						$cmd[] = "{$youtubedl_path} {$url} -f 18 2>/dev/null >/dev/null";
 					}
 				}
 				
@@ -158,7 +161,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 						$batch[$i++ % $download_threads][] = $c;
 					}
 					foreach($batch as $cmd) {
-						exec(implode(' && ', $cmd) . ' & disown');
+						pclose(popen(implode(' && ', $cmd) . ' & disown', 'r'));
 					}
 					$message .= "<p>Queued {$i} video(s) in " . count($batch) . " threads</p>";
 				}
@@ -180,7 +183,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 							if(!$queued) $queued = array();
 							$queued[$id] = true;
 							file_put_contents(__DIR__ . '/.youtube.downloaded', json_encode($queued));
-							$cmd[] = "{$youtubedl_path} {$url} -f 18 3>/dev/null 2>/dev/null >/dev/null";
+							$cmd[] = "{$youtubedl_path} {$url} -f 18 2>/dev/null >/dev/null";
 							$i++;
 						}
 					}
@@ -192,7 +195,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 							$batch[$i++ % $download_threads][] = $c;
 						}
 						foreach($batch as $cmd) {
-							exec(implode(' && ', $cmd) . ' & disown');
+							pclose(popen(implode(' && ', $cmd) . ' & disown', 'r'));
 						}
 						$message .= "<p>Queued {$i} video(s) in " . count($batch) . " threads</p>";
 					}
@@ -270,7 +273,8 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 						$channels[] = $sub->snippet->getResourceId()->channelId;
 					  }
 					  foreach($channels as $channel) {
-						$date = date('Y-m-d', strtotime('-5 days')) . 'T' . date('H:i:s') . 'Z';
+						if($filter_days) $fil = $filter_days; else $fil = 14;
+						$date = date('Y-m-d', strtotime('-'.$fil.' days')) . 'T' . date('H:i:s') . 'Z';
 						$vids = $youtubeService->search->listSearch('snippet', array('channelId' => $channel, 'publishedAfter' => $date, 'maxResults' => 50, 'order' => 'date'));
 						foreach($vids as $vid) {
 							$videos[$vid->id->videoId] = array( 
@@ -285,7 +289,7 @@ if(!file_exists($googleapi_path . '/src/Google/autoload.php')) {
 				  }
 				  
 				  if($use_activity_scan) {
-					  $subscriptions = $youtubeService->activities->listActivities('snippet,contentDetails', array('home' => true, 'maxResults' => 50, 'fields' => 'items(contentDetails,id,snippet)'));
+					  $subscriptions = $youtubeService->activities->listActivities('id,snippet,contentDetails', array('home' => true, 'maxResults' => 50, 'fields' => 'items(contentDetails,id,snippet)'));
 					  foreach($subscriptions as $sub) {
 						
 						$details = $sub->contentDetails;
@@ -349,9 +353,11 @@ END;
 		  $videos = array_diff_key($videos, $queued);
 		  $videos = array_diff_key($videos, $crap);
 
-		  $videos = array_filter($videos, function($e) {
-			return strtotime($e[2]) > strtotime('-2 days');
-		  });
+		  if($filter_days) {
+			  $videos = array_filter($videos, function($e) use ($filter_days) {
+				return strtotime($e[2]) > strtotime('-' . $filter_days . ' days');
+			  });
+		  }
 		  
 		  $alerts = @file_get_contents($alertfile = __DIR__ . '/.youtube.alerts');
 		  $alerts = json_decode($alerts, true);
@@ -414,7 +420,7 @@ END;
   </div>
   <form method="post" action="">
 	<?php if(!empty($htmlBody)) { echo $htmlBody; } ?>
-	<label>Manual download by ID <input type="text" name="videoid" size="10"></label><br>
+	<label>Manual download by ID <input type="text" name="videoid" size="30"></label><br>
   </form>
 </body>
 <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
